@@ -36,6 +36,8 @@ jobs:
           playwright install chromium --with-deps
           sudo timedatectl set-timezone "Asia/Shanghai"
           python main.py
+      - name: Setup GIT user
+        uses: fregante/setup-git-user@v1  
       - name: 上传会话缓存
         continue-on-error: true
         run: |
