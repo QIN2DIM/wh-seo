@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: "3.10"
           cache: 'pip'
-      - name: 运行脚本
+      - name: 安装依赖+运行脚本
         continue-on-error: true
         timeout-minutes: 3
         run: |
@@ -37,11 +37,11 @@ jobs:
           sudo timedatectl set-timezone "Asia/Shanghai"
           python main.py
       - name: Setup GIT user
-        uses: fregante/setup-git-user@v1  
+        uses: fregante/setup-git-user@v1
       - name: 上传会话缓存
         continue-on-error: true
         run: |
-          echo "${{ env.FAKE_HASH }}" > _token
+          echo "${{ env.FAKE_HASH }}" > README.md
           git add .
           git commit -m "${{ env.FAKE_HASH }}" 
           git push -f
