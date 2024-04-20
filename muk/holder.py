@@ -82,7 +82,7 @@ class AgentV:
 
     @staticmethod
     def is_blacklist_content(content: str):
-        inv = {"知乎"}
+        inv = {"知乎", "倒闭", "暴跌", "广告"}
         for i in inv:
             if i in content:
                 return True
@@ -100,7 +100,9 @@ class AgentV:
         await self.page.keyboard.press("Enter")
 
     async def _fall_into_depth_page(self, is_first_page: bool = True):
-        title_tags = self.page.locator("//h3")
+        title_tags = self.page.locator(
+            "//div[@id='content_left']//div[contains(@class, 'result ')]"
+        )
         count = await title_tags.count()
         pending_samples = []
 
@@ -112,19 +114,28 @@ class AgentV:
             # 元素在当前视界内
             if await tag.is_visible():
                 content = await tag.text_content()
+                content = content.strip()
                 # 过滤已访问过的链接，过滤异常的追踪器
                 if content in self._viewed_page_content or self.is_blacklist_content(content):
                     continue
                 self._viewed_page_content.add(content)
-                pending_samples.append((tag, content))
+                pending_samples.append((i, tag, content))
 
         if pending_samples:
             random.shuffle(pending_samples)
-            tag, content = pending_samples[0]
+            i, tag, content = pending_samples[0]
             await self.page.wait_for_timeout(random.randint(300, 1000))
-            await tag.click(no_wait_after=True)
+            title = self.page.locator("//h3").nth(i)
+            title_text = await title.text_content()
+            await title.click(no_wait_after=True)
             await self.page.wait_for_timeout(random.randint(3000, 5000))
-            logger.debug("Page jump", content=content, url=self.page.context.pages[-1].url)
+
+            logger.debug(
+                "Page jump",
+                url=self.page.context.pages[-1].url,
+                title=title_text.strip(),
+                content=content,
+            )
 
     async def _scroll_page(self, revoke):
         t0 = time.perf_counter()
