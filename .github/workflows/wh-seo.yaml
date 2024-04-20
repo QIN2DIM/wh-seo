@@ -1,4 +1,4 @@
-name: Telegram AutoSign
+name: WhiteList SEO
 
 on:
   workflow_dispatch:
