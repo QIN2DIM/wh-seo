@@ -5,7 +5,7 @@ on:
 
   # https://crontab.guru/
   schedule:
-    - cron: "*/50 * * * *"
+    - cron: "*/20 * * * *"
 
 jobs:
   setup:
@@ -13,7 +13,7 @@ jobs:
       # 每个关键词访问几页
       PAGES_PER_KEYWORD: 3
       # 一共阅览多少个关键词，可选项 Literal["all", "0 < IsDigit < Max"]
-      KEYWORD_LIMIT: 2
+      KEYWORD_LIMIT: 3
       # 每个页面至少停留的时间（ms）
       TIME_SPENT_ON_EACH_PAGE: 5000
       # 每个页面至多点击几个词条（进入多少个深度页面）

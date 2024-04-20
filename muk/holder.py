@@ -123,8 +123,8 @@ class AgentV:
             tag, content = pending_samples[0]
             await self.page.wait_for_timeout(random.randint(300, 1000))
             await tag.click(no_wait_after=True)
-            logger.debug("Page jump", content=content, url=self.page.context.pages[-1].url)
             await self.page.wait_for_timeout(random.randint(3000, 5000))
+            logger.debug("Page jump", content=content, url=self.page.context.pages[-1].url)
 
     async def _scroll_page(self, revoke):
         t0 = time.perf_counter()
