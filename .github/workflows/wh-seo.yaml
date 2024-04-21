@@ -9,6 +9,9 @@ on:
 
 jobs:
   setup:
+    strategy:
+      matrix:
+        instance: [ 1, 2, 3, 4 ]
     env:
       # 每个关键词访问几页
       PAGES_PER_KEYWORD: 3
@@ -38,12 +41,12 @@ jobs:
           playwright install chromium --with-deps
           sudo timedatectl set-timezone "Asia/Shanghai"
           python main.py
-      - name: Setup GIT user
-        uses: fregante/setup-git-user@v1
-      - name: 上传会话缓存
-        continue-on-error: true
-        run: |
-          echo "${{ env.FAKE_HASH }}" > README.md
-          git add .
-          git commit -m "${{ env.FAKE_HASH }}" 
-          git push -f
+#      - name: Setup GIT user
+#        uses: fregante/setup-git-user@v1
+#      - name: 上传会话缓存
+#        continue-on-error: true
+#        run: |
+#          echo "${{ env.FAKE_HASH }}" > README.md
+#          git add .
+#          git commit -m "${{ env.FAKE_HASH }}"
+#          git push -f
