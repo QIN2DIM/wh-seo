@@ -254,7 +254,7 @@ class AgentV:
     async def tumble_related_questions(self):
         kw_ = os.getenv("TUMBLE_RELATED_KEYWORD", "进化论资产")
         kws = await self._tumble_related_questions(kw_)
-        logger.debug("tumble related questions", kw=kw_, related=kws)
+        logger.debug("tumble related questions", kw=kw_, related=[i[-1] for i in kws])
 
         for sug_item, related_question in kws:
             logger.debug("Invoke task", selection=related_question)
