@@ -35,7 +35,7 @@ jobs:
           cache: 'pip'
       - name: 安装依赖+运行脚本
         continue-on-error: true
-        timeout-minutes: 3
+        timeout-minutes: 10
         run: |
           pip install -U playwright loguru python-dotenv 
           playwright install chromium --with-deps
