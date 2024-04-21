@@ -21,7 +21,7 @@ from playwright.async_api import Page, Response
 def _fil_jquery(response_txt: str) -> dict:
     start_index = response_txt.index("{")
     end_index = response_txt.rindex("}")
-    json_string = response_txt[start_index : end_index + 1]
+    json_string = response_txt[start_index: end_index + 1]
     qr_data = json.loads(json_string)
     return qr_data
 
@@ -49,6 +49,8 @@ class AgentV:
     tmp_dir: Path
     page: Page | None = None
 
+    blacklist_content: Set[str] = field(default_factory=set)
+
     _keywords: Set[str] = field(default_factory=set)
     sug_queue: Queue[Suggestion] = field(default_factory=Queue)
 
@@ -56,6 +58,7 @@ class AgentV:
     _into_depth_page_times: int = 1
     _pages_per_keyword: int = 3
     _time_spent_on_each_page: int = 5000
+    _tumble_kw: str = "暴跌"
 
     def __post_init__(self):
         if (pt := os.getenv("INTO_DEPTH_PAGE_TIMES")) and pt.isdigit():
@@ -64,6 +67,11 @@ class AgentV:
             self._pages_per_keyword = int(revoke)
         if (ts := os.getenv("TIME_SPENT_ON_EACH_PAGE")) and ts.isdigit():
             self._time_spent_on_each_page = int(ts)
+
+        self.blacklist_content = {"知乎", "倒闭", "暴跌", "广告"}
+        if bc := os.getenv("BLACKLIST_CONTENT"):
+            bc = set([i.strip() for i in bc.strip().split(",")])
+            self.blacklist_content += bc
 
         self.page.on("response", self.task_handler)
 
@@ -80,14 +88,12 @@ class AgentV:
     def into_solver(cls, page: Page, tmp_dir: Path = Path("tmp_dir")):
         return cls(page=page, tmp_dir=tmp_dir)
 
-    @staticmethod
-    def is_blacklist_content(content: str):
-        inv = {"知乎", "倒闭", "暴跌", "广告"}
-        for i in inv:
+    def is_blacklist_content(self, content: str):
+        for i in self.blacklist_content:
             if i in content:
                 return True
 
-    async def _recall_keyword(self, kw: str):
+    async def _recall_keyword(self, kw: str, *, tumble: bool = False):
         self._this_kw = kw
 
         await self.page.goto("https://www.baidu.com/")
@@ -97,7 +103,37 @@ class AgentV:
 
         # wait for video captrue
         await self.page.wait_for_timeout(1000)
+
+        # Click on related suggestion
         await self.page.keyboard.press("Enter")
+
+    async def _tumble_related_questions(self, kw: str, *, selection: str = ""):
+        await self.page.goto("https://www.baidu.com/")
+
+        input_field = self.page.locator("//input[@id='kw']")
+        await input_field.type(kw, delay=50)
+
+        # wait for video captrue
+        await self.page.wait_for_timeout(1000)
+
+        sug_list = self.page.locator("//ul[@id='normalSugSearchUl']//li")
+        count = await sug_list.count()
+        tumble_id = count - 1
+
+        pending_list = []
+        for i in range(count):
+            sug_item = sug_list.nth(i)
+            related_question = await sug_item.get_attribute("data-key")
+            pending_list.append([sug_item, related_question])
+            if self._tumble_kw in related_question:
+                tumble_id = i + 1
+            if selection and (selection in related_question) and (self._tumble_kw not in related_question):
+                await sug_item.click()
+                return
+
+        if 0 < tumble_id <= count - 1:
+            return pending_list[tumble_id:]
+        return pending_list
 
     async def _fall_into_depth_page(self, is_first_page: bool = True):
         title_tags = self.page.locator(
@@ -214,3 +250,13 @@ class AgentV:
             await self._action(kw, revoke=self._pages_per_keyword)
 
         logger.success("Invoke down", trigger=self.__class__.__name__)
+
+    async def tumble_related_questions(self):
+        kw_ = os.getenv("TUMBLE_RELATED_KEYWORD", "进化论资产")
+        kws = await self._tumble_related_questions(kw_)
+        logger.debug("tumble related questions", kw=kw_, related=kws)
+
+        for sug_item, related_question in kws:
+            logger.debug("Invoke task", selection=related_question)
+            await self._tumble_related_questions(kw_, selection=related_question)
+            await self._action(related_question, revoke=self._pages_per_keyword)
