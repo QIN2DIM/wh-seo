@@ -65,7 +65,7 @@ def init_log(**sink_channel):
 
 def load_keywords(fp: Path = Path("./keywords.txt")) -> Set[str] | None:
     if kws_env := os.getenv("SEARCH_KEYWORDS", ""):
-        kws_list = kws_env.strip().strip(",")
+        kws_list = kws_env.strip().split(",")
     elif fp.is_file():
         kws_list = fp.read_text(encoding="utf8").strip().split("\n")
     else:
