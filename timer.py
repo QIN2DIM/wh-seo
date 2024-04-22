@@ -22,17 +22,17 @@ async def main():
     # 设定结束时间，防止任务被遗忘后一直运行下去
     end_date_ = now_ + timedelta(days=30)
 
-    # Default to 1onc /20min
-    seconds_ = 60 * 20
+    # Default to 1onc /10min
+    seconds_ = 60 * 10
     if (interval_seconds := os.getenv("INTERVAL_SECONDS")) and interval_seconds.isdigit():
         seconds_ = int(interval_seconds)
 
     trigger = IntervalTrigger(seconds=seconds_, end_date=end_date_)
 
     scheduler.add_job(run_task, trigger=trigger, kwargs={"headless": True}, max_instances=2, next_run_time=now_)
-    scheduler.start()
 
     try:
+        scheduler.start()
         while True:
             await asyncio.sleep(1)
     except (KeyboardInterrupt, SystemExit):
