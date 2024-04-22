@@ -45,7 +45,7 @@ async def main(headless: bool = False):
         agent = AgentV.into_solver(page, tmp_dir=Path("tmp_dir"))
 
         await agent.wait_for_search(keywords=KEYWORDS)
-        await agent.tumble_related_questions(step=1)
+        await agent.tumble_related_questions(step=3)
 
         await context.close()
 

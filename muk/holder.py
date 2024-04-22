@@ -21,7 +21,7 @@ from playwright.async_api import Page, Response
 def _fil_jquery(response_txt: str) -> dict:
     start_index = response_txt.index("{")
     end_index = response_txt.rindex("}")
-    json_string = response_txt[start_index: end_index + 1]
+    json_string = response_txt[start_index : end_index + 1]
     qr_data = json.loads(json_string)
     return qr_data
 
@@ -50,6 +50,7 @@ class AgentV:
     page: Page | None = None
 
     blacklist_content: Set[str] = field(default_factory=set)
+    whitelist_content: Set[str] = field(default_factory=set)
 
     _keywords: Set[str] = field(default_factory=set)
     sug_queue: Queue[Suggestion] = field(default_factory=Queue)
@@ -68,10 +69,16 @@ class AgentV:
         if (ts := os.getenv("TIME_SPENT_ON_EACH_PAGE")) and ts.isdigit():
             self._time_spent_on_each_page = int(ts)
 
-        self.blacklist_content = {"知乎", "倒闭", "暴跌", "广告", "美女进化论"}
+        self.blacklist_content = {"知乎", "倒闭", "暴跌", "广告", "美女"}
         if bc := os.getenv("BLACKLIST_CONTENT"):
             bc = set([i.strip() for i in bc.strip().split(",")])
-            self.blacklist_content += bc
+            self.blacklist_content.update(bc)
+
+        # 全文匹配
+        self.whitelist_content = {"资产"}
+        if trk := os.getenv("TUMBLE_RELATED_KEYWORD"):
+            trk = set([i.strip() for i in trk.strip().split(",")])
+            self.whitelist_content.update(trk)
 
         self.page.on("response", self.task_handler)
 
@@ -88,10 +95,17 @@ class AgentV:
     def into_solver(cls, page: Page, tmp_dir: Path = Path("tmp_dir")):
         return cls(page=page, tmp_dir=tmp_dir)
 
-    def is_blacklist_content(self, content: str):
+    def fil_content_by_blacklist(self, content: str):
         for i in self.blacklist_content:
             if i in content:
                 return True
+
+    def fil_content_by_whitelist(self, content: str):
+        clay = "".join(self.whitelist_content)
+        clay = "".join(set(clay))
+        for i in clay:
+            if i not in content:
+                return False
 
     async def _recall_keyword(self, kw: str, *, tumble: bool = False):
         self._this_kw = kw
@@ -127,7 +141,11 @@ class AgentV:
             pending_list.append([sug_item, related_question])
             if self._tumble_kw in related_question:
                 tumble_id = i + 1
-            if selection and (selection in related_question) and (self._tumble_kw not in related_question):
+            if (
+                selection
+                and (selection in related_question)
+                and (self._tumble_kw not in related_question)
+            ):
                 await sug_item.click()
                 return
 
@@ -152,7 +170,11 @@ class AgentV:
                 content = await tag.text_content()
                 content = content.strip()
                 # 过滤已访问过的链接，过滤异常的追踪器
-                if content in self._viewed_page_content or self.is_blacklist_content(content):
+                if (
+                    content in self._viewed_page_content
+                    or self.fil_content_by_blacklist(content)
+                    and self.fil_content_by_whitelist(content)
+                ):
                     continue
                 self._viewed_page_content.add(content)
                 pending_samples.append((i, tag, content))
@@ -258,8 +280,9 @@ class AgentV:
             return
 
         kws = await self._tumble_related_questions(kw_)
+        random.shuffle(kws)
         step = min(len(kws), step)
-        logger.debug("tumble related questions", kw=kw_, related=[i[-1] for i in kws[:step]])
+        logger.debug("tumble related questions", kw=kw_, related=[i for i in kws[:step]])
 
         for sug_item, related_question in kws[:step]:
             logger.debug("Invoke task", selection=related_question)
