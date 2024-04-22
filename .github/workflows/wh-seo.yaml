@@ -22,7 +22,7 @@ jobs:
       # 每个页面至多点击几个词条（进入多少个深度页面）
       INTO_DEPTH_PAGE_TIMES: 2
       # 覆盖掉 keywords.txt 优先级更高的检索词列表，以英文半角逗号分开，不需要空格
-      SEARCH_KEYWORDS: 进化论资产 王一平,进化论资产微博,进化论资产雪球,进化论资产创始人
+      SEARCH_KEYWORDS: 进化论资产王一平,进化论资产微博,进化论资产雪球,进化论资产创始人,进化论资产基金,进化论资产私募排排网
       TUMBLE_RELATED_KEYWORD: 进化论资产
       FAKE_HASH: "Automated deployment @ $(date '+%Y-%m-%d %H:%M:%S') Asia/Shanghai"
     runs-on: ubuntu-latest
