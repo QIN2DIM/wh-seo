@@ -3,9 +3,9 @@ services:
   wh-seo:
     image: ech0sec/wh-seo:pak
     volumes:
-      - ./:/app
+      - ./:/home/wh-seo/
     restart: always
-    command: ["python", "main.py"]
+    command: ["python3", "main.py"]
     environment:
       # 每个关键词访问几页
       PAGES_PER_KEYWORD: 3
