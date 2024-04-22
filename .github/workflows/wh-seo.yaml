@@ -18,11 +18,11 @@ jobs:
       # 一共阅览多少个关键词，可选项 Literal["all", "0 < IsDigit < Max"]
       KEYWORD_LIMIT: 3
       # 每个页面至少停留的时间（ms）
-      TIME_SPENT_ON_EACH_PAGE: 5000
+      TIME_SPENT_ON_EACH_PAGE: 7000
       # 每个页面至多点击几个词条（进入多少个深度页面）
       INTO_DEPTH_PAGE_TIMES: 1
       # 覆盖掉 keywords.txt 优先级更高的检索词列表，以英文半角逗号分开，不需要空格
-      SEARCH_KEYWORDS: 进化论资产面试,进化论资产排名,进化论资产官网
+      SEARCH_KEYWORDS: 进化论资产 王一平,进化论资产面试,进化论资产排名,进化论资产官网
       FAKE_HASH: "Automated deployment @ $(date '+%Y-%m-%d %H:%M:%S') Asia/Shanghai"
     runs-on: ubuntu-latest
     steps:
