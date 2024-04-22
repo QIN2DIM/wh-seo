@@ -14,6 +14,7 @@ services:
       # 一共阅览多少个关键词，可选项 Literal["all", "0 < IsDigit < Max"]
       KEYWORD_LIMIT: 3
       # 每个页面至少停留的时间（ms）
-      TIME_SPENT_ON_EACH_PAGE: 5000
+      TIME_SPENT_ON_EACH_PAGE: 7000
       # 每个页面至多点击几个词条（进入多少个深度页面）
       INTO_DEPTH_PAGE_TIMES: 1
+      TUMBLE_RELATED_KEYWORD: 进化论资产
