@@ -31,7 +31,10 @@ async def main(headless: bool = False):
 
     fmt = "%Y-%d-%m-%H-%M-%S"
     now_ = datetime.now(timezone(timedelta(hours=8))).strftime(fmt)
-    record_video_dir = Path(f"tmp_dir/record_videos/{now_}")
+
+    record_video_dir = None
+    if os.getenv("ENABLE_RECORD_VIDEO"):
+        record_video_dir = Path(f"tmp_dir/record_videos/{now_}")
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=headless, proxy=proxy)
@@ -48,4 +51,4 @@ async def main(headless: bool = False):
 
 
 if __name__ == "__main__":
-    encrypted_resp = asyncio.run(main(headless=False))
+    encrypted_resp = asyncio.run(main(headless=True))
