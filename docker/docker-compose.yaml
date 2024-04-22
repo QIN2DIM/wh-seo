@@ -21,4 +21,4 @@ services:
       #  是否录频，取消注释则录制
       # ENABLE_RECORD_VIDEO: 1
       # 添加额外的黑名单关键词 英文半角逗号分隔 "," 不需要空格
-#      BLACKLIST_CONTENT:
+      # BLACKLIST_CONTENT:
