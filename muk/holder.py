@@ -261,3 +261,4 @@ class AgentV:
             logger.debug("Invoke task", selection=related_question)
             await self._tumble_related_questions(kw_, selection=related_question)
             await self._action(related_question, revoke=self._pages_per_keyword)
+        logger.success("Invoke down", trigger=self.__class__.__name__)

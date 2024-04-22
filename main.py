@@ -41,11 +41,11 @@ async def main(headless: bool = False):
         page = await context.new_page()
         agent = AgentV.into_solver(page, tmp_dir=Path("tmp_dir"))
 
-        await agent.tumble_related_questions(step=1)
         await agent.wait_for_search(keywords=KEYWORDS)
+        await agent.tumble_related_questions(step=1)
 
         await context.close()
 
 
 if __name__ == "__main__":
-    encrypted_resp = asyncio.run(main(headless=False))
+    encrypted_resp = asyncio.run(main(headless=True))
