@@ -3,6 +3,7 @@ services:
   wh-seo:
     image: ech0sec/wh-seo:latest
     volumes:
+      - ./:/home/wh-seo/
       - ./tmp_dir:/home/wh-seo/tmp_dir
     restart: always
     command: ["python3", "timer.py"]
