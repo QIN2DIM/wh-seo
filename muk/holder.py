@@ -252,7 +252,11 @@ class AgentV:
         logger.success("Invoke down", trigger=self.__class__.__name__)
 
     async def tumble_related_questions(self, step: int = 10):
-        kw_ = os.getenv("TUMBLE_RELATED_KEYWORD", "进化论资产")
+        kw_ = os.getenv("TUMBLE_RELATED_KEYWORD")
+        if not kw_:
+            logger.success("Invoke down", reason="Tumble related keywords not set")
+            return
+
         kws = await self._tumble_related_questions(kw_)
         step = min(len(kws), step)
         logger.debug("tumble related questions", kw=kw_, related=[i[-1] for i in kws[:step]])

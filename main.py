@@ -48,4 +48,4 @@ async def main(headless: bool = False):
 
 
 if __name__ == "__main__":
-    encrypted_resp = asyncio.run(main(headless=True))
+    encrypted_resp = asyncio.run(main(headless=False))
