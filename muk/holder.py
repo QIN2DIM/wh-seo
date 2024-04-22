@@ -11,11 +11,11 @@ from asyncio import Queue
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Set, List, Dict
+from typing import Set, List, Dict, Tuple
 from venv import logger
 
 from loguru import logger
-from playwright.async_api import Page, Response
+from playwright.async_api import Page, Response, Locator, expect
 
 
 def _fil_jquery(response_txt: str) -> dict:
@@ -112,8 +112,8 @@ class AgentV:
 
         await self.page.goto("https://www.baidu.com/")
 
-        input_field = self.page.locator("//input[@id='kw']")
-        await input_field.type(kw, delay=50)
+        input_field = self.page.locator("//input")
+        await input_field.first.type(kw, delay=50)
 
         # wait for video captrue
         await self.page.wait_for_timeout(1000)
@@ -153,75 +153,70 @@ class AgentV:
             return pending_list[tumble_id:]
         return pending_list
 
-    async def _fall_into_depth_page(self, is_first_page: bool = True):
+    async def _fil_depth_page(self):
+        await self.page.wait_for_load_state(state="networkidle")
         title_tags = self.page.locator(
             "//div[@id='content_left']//div[contains(@class, 'result ')]"
         )
+        await expect(title_tags.first).to_be_visible()
         count = await title_tags.count()
         pending_samples = []
 
         for i in range(count):
-            # 防止被投毒
-            if is_first_page and i == 0:
-                continue
             tag = title_tags.nth(i)
-            # 元素在当前视界内
-            if await tag.is_visible():
-                content = await tag.text_content()
-                content = content.strip()
-                # 过滤已访问过的链接，过滤异常的追踪器
-                if (
-                    content in self._viewed_page_content
-                    or self.fil_content_by_blacklist(content)
-                    and self.fil_content_by_whitelist(content)
-                ):
-                    continue
-                self._viewed_page_content.add(content)
-                pending_samples.append((i, tag, content))
+            content = await tag.text_content()
+            content = content.strip()
+            # 过滤已访问过的链接，过滤异常的追踪器，过滤不在白名单内的索引
+            if (
+                content in self._viewed_page_content
+                or self.fil_content_by_blacklist(content)
+                and self.fil_content_by_whitelist(content)
+            ):
+                continue
+            self._viewed_page_content.add(content)
+            pending_samples.append((i, tag, content))
 
-        if pending_samples:
-            random.shuffle(pending_samples)
-            i, tag, content = pending_samples[0]
-            await self.page.wait_for_timeout(random.randint(300, 1000))
-            title = self.page.locator("//h3").nth(i)
-            title_text = await title.text_content()
-            await title.click(no_wait_after=True)
-            await self.page.wait_for_timeout(random.randint(3000, 5000))
+        return pending_samples
 
-            logger.debug(
-                "Page jump",
-                url=self.page.context.pages[-1].url,
-                title=title_text.strip(),
-                content=content,
-            )
+    async def _drop_depth_page(self, sample: Tuple[int, Locator, str]):
+        i, tag, content = sample
+        await self.page.wait_for_timeout(random.randint(300, 1000))
+        title = self.page.locator("//h3").nth(i)
+        title_text = await title.text_content()
+        await title.click(no_wait_after=True)
+        await self.page.wait_for_timeout(random.randint(3000, 5000))
+
+        logger.debug(
+            "Page jump",
+            url=self.page.context.pages[-1].url,
+            title=title_text.strip(),
+            content=content,
+        )
 
     async def _scroll_page(self, revoke):
         t0 = time.perf_counter()
 
-        click_count = 0
+        pending_samples = await self._fil_depth_page()
+        random.shuffle(pending_samples)
+        samples = pending_samples[: self._into_depth_page_times]
 
-        # Let each page stay longer than 5 seconds
-        for j in range(2):
-            if click_count >= self._into_depth_page_times:
-                break
-            # Process top-ranked terms
-            if revoke != 1 and random.uniform(0, 1) > 0.7:
-                click_count += 1
-                await self._fall_into_depth_page()
-                await self.page.bring_to_front()
-            # Move the screen randomly
-            for _ in range(random.randint(2, 3)):
-                for _ in range(random.randint(3, 8)):
-                    await self.page.mouse.wheel(0, 30)
-                await self.page.wait_for_timeout(random.choice([500, 600]))
-            # Process end-of-page entries
-            if click_count < self._into_depth_page_times:
-                click_count += 1
-                await self._fall_into_depth_page()
-                await self.page.bring_to_front()
-            if j == 0:
-                for _ in range(random.randint(5, 7)):
-                    await self.page.mouse.wheel(0, -40)
+        for sample in samples:
+            _, tag, _ = sample
+            while not await tag.is_visible():
+                await self.page.wait_for_timeout(random.choice([800, 1500]))
+                for _ in range(random.randint(3, 5)):
+                    await self.page.mouse.wheel(0, 20)
+            await self._drop_depth_page(sample)
+            await self.page.bring_to_front()
+            if len(samples) > 1:
+                await self.page.keyboard.press("Home")
+            else:
+                for _ in range(3):
+                    for _ in range(random.randint(3, 5)):
+                        await self.page.mouse.wheel(0, 50)
+                        await self.page.wait_for_timeout(400)
+                    await self.page.wait_for_timeout(random.choice([500, 800]))
+                await self.page.wait_for_timeout(1000)
 
         # Make the next page button is_visible
         await self.page.bring_to_front()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import random
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -21,6 +22,24 @@ init_log(
 )
 
 
+async def shuffle_devices():
+    device_list = [
+        "iPhone 13",
+        "iPhone 13 Pro",
+        "iPhone 13 Pro Max",
+        "iPhone 14",
+        "iPhone 14 Plus",
+        "iPhone 14 Pro",
+        "iPhone 14 Pro Max",
+        "Desktop Firefox",
+        "Desktop Edge",
+        "Desktop Chrome",
+        "Desktop Safari",
+    ]
+    random.shuffle(device_list)
+    return device_list[-1]
+
+
 async def main(headless: bool = False):
     if "linux" in sys.platform and "DISPLAY" not in os.environ:
         headless = True
@@ -37,6 +56,9 @@ async def main(headless: bool = False):
         record_video_dir = Path(f"tmp_dir/record_videos/{now_}")
 
     async with async_playwright() as p:
+        # shuffled_device = p.devices[shuffle_devices()]
+        # browser = await p.chromium.launch(headless=headless, proxy=proxy)
+        # context = await browser.new_context(**shuffled_device, locale="zh-CN", record_video_dir=record_video_dir)
         browser = await p.chromium.launch(headless=headless, proxy=proxy)
         context = await browser.new_context(locale="zh-CN", record_video_dir=record_video_dir)
         await Malenia.apply_stealth(context)
@@ -51,4 +73,4 @@ async def main(headless: bool = False):
 
 
 if __name__ == "__main__":
-    encrypted_resp = asyncio.run(main(headless=True))
+    encrypted_resp = asyncio.run(main(headless=False))
