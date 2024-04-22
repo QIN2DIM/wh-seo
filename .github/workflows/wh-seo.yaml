@@ -11,7 +11,7 @@ jobs:
   setup:
     strategy:
       matrix:
-        instance: [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
+        instance: [ 1, 2, 3 ]
     env:
       # 每个关键词访问几页
       PAGES_PER_KEYWORD: 2
