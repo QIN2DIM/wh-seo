@@ -15,7 +15,7 @@ on:
       - "tmp_dir/"
       - "examples/"
 env:
-  IMAGE_TAG: ${{ secrets.DOCKERHUB_USERNAME }}/wh-seo:pak
+  IMAGE_TAG: ${{ secrets.DOCKERHUB_USERNAME }}/wh-seo:latest
 
 jobs:
   docker:

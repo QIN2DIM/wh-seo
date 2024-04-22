@@ -68,7 +68,7 @@ class AgentV:
         if (ts := os.getenv("TIME_SPENT_ON_EACH_PAGE")) and ts.isdigit():
             self._time_spent_on_each_page = int(ts)
 
-        self.blacklist_content = {"知乎", "倒闭", "暴跌", "广告"}
+        self.blacklist_content = {"知乎", "倒闭", "暴跌", "广告", "美女进化论"}
         if bc := os.getenv("BLACKLIST_CONTENT"):
             bc = set([i.strip() for i in bc.strip().split(",")])
             self.blacklist_content += bc
