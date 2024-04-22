@@ -16,7 +16,7 @@ jobs:
       # 每个关键词访问几页
       PAGES_PER_KEYWORD: 3
       # 一共阅览多少个关键词，可选项 Literal["all", "0 < IsDigit < Max"]
-      KEYWORD_LIMIT: 3
+      KEYWORD_LIMIT: all
       # 每个页面至少停留的时间（ms）
       TIME_SPENT_ON_EACH_PAGE: 7000
       # 每个页面至多点击几个词条（进入多少个深度页面）
