@@ -29,7 +29,7 @@ async def main():
 
     trigger = IntervalTrigger(seconds=seconds_, end_date=end_date_)
 
-    scheduler.add_job(run_task, trigger=trigger, kwargs={"headless": False}, max_instances=2, next_run_time=now_)
+    scheduler.add_job(run_task, trigger=trigger, kwargs={"headless": True}, max_instances=2, next_run_time=now_)
 
     try:
         scheduler.start()
