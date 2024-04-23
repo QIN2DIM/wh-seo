@@ -298,7 +298,11 @@ class AgentV:
         )
 
         for i in range(limit):
-            logger.debug("Loop task", progress=f"[{i + 1}/{limit}]")
-            await self._recall_keyword(keyword)
-            await self._action(keyword, revoke=self._pages_per_keyword)
-            self._viewed_page_content = set()
+            try:
+                logger.debug("Loop task", progress=f"[{i + 1}/{limit}]")
+                await self._recall_keyword(keyword)
+                await self._action(keyword, revoke=self._pages_per_keyword)
+                self._viewed_page_content = set()
+            except Exception as err:
+                logger.error(err)
+                await self.page.wait_for_timeout(3000)
