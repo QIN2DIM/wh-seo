@@ -69,7 +69,7 @@ class AgentV:
         if (ts := os.getenv("TIME_SPENT_ON_EACH_PAGE")) and ts.isdigit():
             self._time_spent_on_each_page = int(ts)
 
-        self.blacklist_content = {"知乎", "倒闭", "暴跌", "广告", "美女"}
+        self.blacklist_content = {"知乎", "倒闭", "暴跌", "广告", "美女", "公务员"}
         if bc := os.getenv("BLACKLIST_CONTENT"):
             bc = set([i.strip() for i in bc.strip().split(",")])
             self.blacklist_content.update(bc)
@@ -284,3 +284,21 @@ class AgentV:
             await self._tumble_related_questions(kw_, selection=related_question)
             await self._action(related_question, revoke=self._pages_per_keyword)
         logger.success("Invoke down", trigger=self.__class__.__name__)
+
+    async def loop_one_search(self, keyword: str, limit: int = 100):
+        self._keywords = {keyword} if isinstance(keyword, str) else keyword
+        self._pages_per_keyword = 1
+        self._into_depth_page_times = 1
+
+        logger.info("[LOOP] keywords", keywords=self._keywords)
+        logger.debug(
+            "Apply configuration",
+            PAGES_PER_KEYWORD=self._pages_per_keyword,
+            TIME_SPENT_ON_EACH_PAGE=f"{self._time_spent_on_each_page}ms",
+        )
+
+        for i in range(limit):
+            logger.debug("Loop task", progress=f"[{i + 1}/{limit}]")
+            await self._recall_keyword(keyword)
+            await self._action(keyword, revoke=self._pages_per_keyword)
+            self._viewed_page_content = set()

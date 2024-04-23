@@ -55,6 +55,13 @@ async def main(headless: bool = False):
     if os.getenv("ENABLE_RECORD_VIDEO"):
         record_video_dir = Path(f"tmp_dir/record_videos/{now_}")
 
+    kw = os.getenv("LOOP_THE_KEYWORD")
+    loop_limit = os.getenv("LOOP_LIMIT", 10)
+    if isinstance(loop_limit, str) and loop_limit.isdigit():
+        loop_limit = int(loop_limit)
+    else:
+        loop_limit = 10
+
     async with async_playwright() as p:
         # shuffled_device = p.devices[shuffle_devices()]
         # browser = await p.chromium.launch(headless=headless, proxy=proxy)
@@ -66,8 +73,11 @@ async def main(headless: bool = False):
         page = await context.new_page()
         agent = AgentV.into_solver(page, tmp_dir=Path("tmp_dir"))
 
-        await agent.wait_for_search(keywords=KEYWORDS)
-        await agent.tumble_related_questions(step=3)
+        if isinstance(kw, str):
+            await agent.loop_one_search(keyword=kw, limit=loop_limit)
+        else:
+            await agent.wait_for_search(keywords=KEYWORDS)
+            await agent.tumble_related_questions(step=3)
 
         await context.close()
 
