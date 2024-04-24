@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import random
 import sys
 from datetime import datetime, timezone, timedelta
@@ -9,7 +8,7 @@ from pathlib import Path
 
 import dotenv
 from playwright.async_api import async_playwright
-
+from muk.const import IS_DISPLAY, PROXY, ENABLE_RECORD_VIDEO, LOOP_THE_KEYWORD, LOOP_LIMIT
 from muk import Malenia, AgentV
 from utils import KEYWORDS, init_log
 
@@ -41,32 +40,23 @@ async def shuffle_devices():
 
 
 async def main(headless: bool = False):
-    if "linux" in sys.platform and "DISPLAY" not in os.environ:
+    if "linux" in sys.platform and not IS_DISPLAY:
         headless = True
-
-    proxy = None
-    if proxy_server := os.getenv("HTTPS_PROXY"):
-        proxy = {"server": proxy_server}
 
     fmt = "%Y-%d-%m-%H-%M-%S"
     now_ = datetime.now(timezone(timedelta(hours=8))).strftime(fmt)
 
     record_video_dir = None
-    if os.getenv("ENABLE_RECORD_VIDEO"):
+    if ENABLE_RECORD_VIDEO:
         record_video_dir = Path(f"tmp_dir/record_videos/{now_}")
 
-    kw = os.getenv("LOOP_THE_KEYWORD")
-    loop_limit = os.getenv("LOOP_LIMIT", 10)
-    if isinstance(loop_limit, str) and loop_limit.isdigit():
-        loop_limit = int(loop_limit)
-    else:
-        loop_limit = 10
+    kw = LOOP_THE_KEYWORD
 
     async with async_playwright() as p:
         # shuffled_device = p.devices[shuffle_devices()]
         # browser = await p.chromium.launch(headless=headless, proxy=proxy)
         # context = await browser.new_context(**shuffled_device, locale="zh-CN", record_video_dir=record_video_dir)
-        browser = await p.chromium.launch(headless=headless, proxy=proxy)
+        browser = await p.chromium.launch(headless=headless, proxy=PROXY)
         context = await browser.new_context(locale="zh-CN", record_video_dir=record_video_dir)
         await Malenia.apply_stealth(context)
 
@@ -74,7 +64,7 @@ async def main(headless: bool = False):
         agent = AgentV.into_solver(page, tmp_dir=Path("tmp_dir"))
 
         if isinstance(kw, str):
-            await agent.loop_one_search(keyword=kw, limit=loop_limit)
+            await agent.loop_one_search(keyword=kw, limit=LOOP_LIMIT)
         else:
             await agent.wait_for_search(keywords=KEYWORDS)
             await agent.tumble_related_questions(step=3)

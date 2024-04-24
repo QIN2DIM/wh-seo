@@ -4,7 +4,6 @@
 # GitHub     : https://github.com/QIN2DIM
 # Description:
 import json
-import os
 import random
 import time
 from asyncio import Queue
@@ -16,6 +15,15 @@ from venv import logger
 
 from loguru import logger
 from playwright.async_api import Page, Response, Locator, expect
+
+from muk.const import (
+    INTO_DEPTH_PAGE_TIMES,
+    PAGES_PER_KEYWORD,
+    TIME_SPENT_ON_EACH_PAGE,
+    BLACKLIST_CONTENT,
+    WHITELIST_CONTENT,
+    TUMBLE_RELATED_KEYWORD,
+)
 
 
 def _fil_jquery(response_txt: str) -> dict:
@@ -56,29 +64,14 @@ class AgentV:
     sug_queue: Queue[Suggestion] = field(default_factory=Queue)
 
     _viewed_page_content: Set[str] = field(default_factory=set)
-    _into_depth_page_times: int = 1
-    _pages_per_keyword: int = 3
-    _time_spent_on_each_page: int = 5000
+    _into_depth_page_times: int = INTO_DEPTH_PAGE_TIMES
+    _pages_per_keyword: int = PAGES_PER_KEYWORD
+    _time_spent_on_each_page: int = TIME_SPENT_ON_EACH_PAGE
     _tumble_kw: str = "暴跌"
 
     def __post_init__(self):
-        if (pt := os.getenv("INTO_DEPTH_PAGE_TIMES")) and pt.isdigit():
-            self._into_depth_page_times = int(pt)
-        if (revoke := os.getenv("PAGES_PER_KEYWORD")) and revoke.isdigit():
-            self._pages_per_keyword = int(revoke)
-        if (ts := os.getenv("TIME_SPENT_ON_EACH_PAGE")) and ts.isdigit():
-            self._time_spent_on_each_page = int(ts)
-
-        self.blacklist_content = {"知乎", "倒闭", "暴跌", "广告", "美女", "公务员"}
-        if bc := os.getenv("BLACKLIST_CONTENT"):
-            bc = set([i.strip() for i in bc.strip().split(",")])
-            self.blacklist_content.update(bc)
-
-        # 全文匹配
-        self.whitelist_content = {"资产"}
-        if trk := os.getenv("TUMBLE_RELATED_KEYWORD"):
-            trk = set([i.strip() for i in trk.strip().split(",")])
-            self.whitelist_content.update(trk)
+        self.blacklist_content = BLACKLIST_CONTENT
+        self.whitelist_content = WHITELIST_CONTENT
 
         self.page.on("response", self.task_handler)
 
@@ -158,6 +151,7 @@ class AgentV:
         title_tags = self.page.locator(
             "//div[@id='content_left']//div[contains(@class, 'result ')]"
         )
+        # 当前词条无搜索结果
         await expect(title_tags.first).to_be_visible()
         count = await title_tags.count()
         pending_samples = []
@@ -268,8 +262,8 @@ class AgentV:
 
         logger.success("Invoke down", trigger=self.__class__.__name__)
 
-    async def tumble_related_questions(self, step: int = 10):
-        kw_ = os.getenv("TUMBLE_RELATED_KEYWORD")
+    async def tumble_related_questions(self, kw_: str = "", step: int = 10):
+        kw_ = kw_ or TUMBLE_RELATED_KEYWORD
         if not kw_:
             logger.success("Invoke down", reason="Tumble related keywords not set")
             return

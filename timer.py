@@ -1,12 +1,12 @@
 import asyncio
 import logging
-import os
 import sys
 from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
+from muk.const import END_DAYS, INTERVAL_SECONDS
 from main import main as run_task
 
 logging.basicConfig(
@@ -18,18 +18,12 @@ async def main():
     scheduler = AsyncIOScheduler()
 
     now_ = datetime.now(timezone(timedelta(hours=8)))
+    end_date_ = now_ + timedelta(days=END_DAYS)
+    trigger = IntervalTrigger(seconds=INTERVAL_SECONDS, end_date=end_date_)
 
-    # 设定结束时间，防止任务被遗忘后一直运行下去
-    end_date_ = now_ + timedelta(days=30)
-
-    # Default to 1onc /10min
-    seconds_ = 60 * 10
-    if (interval_seconds := os.getenv("INTERVAL_SECONDS")) and interval_seconds.isdigit():
-        seconds_ = int(interval_seconds)
-
-    trigger = IntervalTrigger(seconds=seconds_, end_date=end_date_)
-
-    scheduler.add_job(run_task, trigger=trigger, kwargs={"headless": True}, max_instances=2, next_run_time=now_)
+    scheduler.add_job(
+        run_task, trigger=trigger, kwargs={"headless": True}, max_instances=2, next_run_time=now_
+    )
 
     try:
         scheduler.start()
@@ -39,5 +33,5 @@ async def main():
         scheduler.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

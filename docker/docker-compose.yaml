@@ -13,7 +13,7 @@ services:
       # 一共阅览多少个关键词，可选项 Literal["all", "0 < IsDigit < Max"]
       KEYWORD_LIMIT: 5
       # 每个页面至少停留的时间（ms）
-      TIME_SPENT_ON_EACH_PAGE: 3000
+      TIME_SPENT_ON_EACH_PAGE: 6000
       # 每个页面至多点击几个词条（进入多少个深度页面）
       INTO_DEPTH_PAGE_TIMES: 2
       # 轮动词条
@@ -22,6 +22,7 @@ services:
       # ENABLE_RECORD_VIDEO: 1
       # 添加额外的黑名单关键词 英文半角逗号分隔 "," 不需要空格
       # BLACKLIST_CONTENT:
-      LOOP_THE_KEYWORD: 进化论资产面试
-      LOOP_LIMIT: 10
-      INTERVAL_SECONDS: 300
+      # LOOP_THE_KEYWORD: 进化论资产面试
+      # LOOP_LIMIT: 10
+      # INTERVAL_SECONDS: 300
+      # SEARCH_KEYWORDS: 进化论资产超额收益,进化论资产基本面量化,进化论资产主动+量化
