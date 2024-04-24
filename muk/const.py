@@ -80,7 +80,7 @@ if (ts := os.getenv("TIME_SPENT_ON_EACH_PAGE")) and ts.isdigit():
     TIME_SPENT_ON_EACH_PAGE = int(ts)
 
 # 拒绝点入body包含如下关键词的页面
-BLACKLIST_CONTENT: Set[str] = {"知乎", "倒闭", "暴跌", "广告", "美女", "公务员"}
+BLACKLIST_CONTENT: Set[str] = {"知乎", "倒闭", "跌", "广告", "美女", "公务员"}
 if bc := os.getenv("BLACKLIST_CONTENT"):
     bc = set([i.strip() for i in bc.strip().split(",")])
     BLACKLIST_CONTENT.update(bc)
