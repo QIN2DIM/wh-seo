@@ -32,7 +32,7 @@ if (end_days := os.getenv("HANG_AFTER_N_DAYS")) and end_days.isdigit():
     END_DAYS = int(end_days)
 
 # Default to 1onc /10min
-INTERVAL_SECONDS: int = 60 * 20
+INTERVAL_SECONDS: int = 60 * 10
 if (interval_seconds := os.getenv("INTERVAL_SECONDS")) and interval_seconds.isdigit():
     seconds_ = int(interval_seconds)
 
