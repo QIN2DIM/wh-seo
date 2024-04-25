@@ -8,16 +8,17 @@ from pathlib import Path
 
 import dotenv
 from playwright.async_api import async_playwright
-from muk.const import IS_DISPLAY, PROXY, ENABLE_RECORD_VIDEO, LOOP_THE_KEYWORD, LOOP_LIMIT
+
 from muk import Malenia, AgentV
+from muk.const import IS_DISPLAY, PROXY, ENABLE_RECORD_VIDEO, LOOP_THE_KEYWORD, LOOP_LIMIT
 from utils import KEYWORDS, init_log
 
 dotenv.load_dotenv()
 
 init_log(
-    runtime=Path("tmp_dir/logs/{time:YYYY-MM-DD-HH-mm-ss}/runtime.log"),
-    error=Path("tmp_dir/logs/{time:YYYY-MM-DD-HH-mm-ss}/error.log"),
-    serialize=Path("tmp_dir/logs/{time:YYYY-MM-DD-HH-mm-ss}/serialize.log"),
+    runtime=Path("tmp_dir/logs/{time:YYYY-MM-DD}/{time:HH-mm-ss}/runtime.log"),
+    error=Path("tmp_dir/logs/{time:YYYY-MM-DD}/{time:HH-mm-ss}/error.log"),
+    serialize=Path("tmp_dir/logs/{time:YYYY-MM-DD}/{time:HH-mm-ss}/serialize.log"),
 )
 
 

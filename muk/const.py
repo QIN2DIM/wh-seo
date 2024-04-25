@@ -20,7 +20,7 @@ __all__ = [
     "WHITELIST_CONTENT",
     "TUMBLE_RELATED_KEYWORD",
     "SEARCH_KEYWORDS_ENV",
-    "KEYWORD_LIMIT"
+    "KEYWORD_LIMIT",
 ]
 
 # ===================================================================
@@ -85,8 +85,16 @@ if bc := os.getenv("BLACKLIST_CONTENT"):
     bc = set([i.strip() for i in bc.strip().split(",")])
     BLACKLIST_CONTENT.update(bc)
 
-# 拒绝点入body不含如下关键词的页面（全文匹配）
-WHITELIST_CONTENT: Set[str] = {"资产"}
+# 拒绝点入body不含如下关键词的页面（单字匹配）
+WHITELIST_CONTENT: Set[str] = {
+    "科学投资",
+    "主动+量化",
+    "数据+逻辑",
+    "雪球",
+    "私募排",
+    "超额收益",
+    "进化论资产",
+}
 if trk := os.getenv("TUMBLE_RELATED_KEYWORD"):
     trk = set([i.strip() for i in trk.strip().split(",")])
     WHITELIST_CONTENT.update(trk)

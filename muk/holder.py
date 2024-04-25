@@ -10,7 +10,7 @@ from asyncio import Queue
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Set, List, Dict, Tuple
+from typing import Set, List, Dict, Tuple, Any
 from venv import logger
 
 from loguru import logger
@@ -53,6 +53,14 @@ class Suggestion:
 
 
 @dataclass
+class Sample:
+    nth: int
+    tag: Locator
+    title_text: str
+    content: str
+
+
+@dataclass
 class AgentV:
     tmp_dir: Path
     page: Page | None = None
@@ -63,7 +71,7 @@ class AgentV:
     _keywords: Set[str] = field(default_factory=set)
     sug_queue: Queue[Suggestion] = field(default_factory=Queue)
 
-    _viewed_page_content: Set[str] = field(default_factory=set)
+    _viewed_page_binder: Set[str] = field(default_factory=set)
     _into_depth_page_times: int = INTO_DEPTH_PAGE_TIMES
     _pages_per_keyword: int = PAGES_PER_KEYWORD
     _time_spent_on_each_page: int = TIME_SPENT_ON_EACH_PAGE
@@ -72,6 +80,8 @@ class AgentV:
     def __post_init__(self):
         self.blacklist_content = BLACKLIST_CONTENT
         self.whitelist_content = WHITELIST_CONTENT
+
+        self.whitelist_ful = {"进化论"}
 
         self.page.on("response", self.task_handler)
 
@@ -88,13 +98,17 @@ class AgentV:
     def into_solver(cls, page: Page, tmp_dir: Path = Path("tmp_dir")):
         return cls(page=page, tmp_dir=tmp_dir)
 
-    def fil_content_by_blacklist(self, content: str):
+    def is_irrelevant(self, content: str):
         for i in self.blacklist_content:
             if i in content:
                 return True
 
-    def fil_content_by_whitelist(self, content: str):
-        clay = "".join(self.whitelist_content)
+    def is_highly_relevant(self, content: str):
+        for k in self.whitelist_content:
+            if k in content:
+                return True
+
+        clay = "".join(self.whitelist_ful)
         clay = "".join(set(clay))
         for i in clay:
             if i not in content:
@@ -146,7 +160,7 @@ class AgentV:
             return pending_list[tumble_id:]
         return pending_list
 
-    async def _fil_depth_page(self):
+    async def _fil_depth_page(self) -> List[Sample]:
         await self.page.wait_for_load_state(state="networkidle")
         title_tags = self.page.locator(
             "//div[@id='content_left']//div[contains(@class, 'result ')]"
@@ -160,34 +174,34 @@ class AgentV:
             tag = title_tags.nth(i)
             content = await tag.text_content()
             content = content.strip()
-            # 过滤已访问过的链接，过滤异常的追踪器，过滤不在白名单内的索引
-            if (
-                content in self._viewed_page_content
-                or self.fil_content_by_blacklist(content)
-                and self.fil_content_by_whitelist(content)
-            ):
+            title = self.page.locator("//h3").nth(i)
+            title_text = await title.text_content()
+            binder = title_text + content
+            # 过滤已访问过的链接，过滤异常的追踪器
+            if binder in self._viewed_page_binder or self.is_irrelevant(binder):
                 continue
-            self._viewed_page_content.add(content)
-            pending_samples.append((i, tag, content))
+            # 过滤不在白名单内的索引
+            if self.is_highly_relevant(binder):
+                self._viewed_page_binder.add(binder)
+                sample = Sample(nth=i, tag=tag, title_text=title_text, content=content)
+                pending_samples.append(sample)
 
         return pending_samples
 
-    async def _drop_depth_page(self, sample: Tuple[int, Locator, str]):
-        i, tag, content = sample
+    async def _drop_depth_page(self, sample: Sample):
         await self.page.wait_for_timeout(random.randint(300, 1000))
-        title = self.page.locator("//h3").nth(i)
-        title_text = await title.text_content()
+        title = self.page.locator("//h3").nth(sample.nth)
         await title.click(no_wait_after=True)
         await self.page.wait_for_timeout(random.randint(3000, 5000))
 
         logger.debug(
             "Page jump",
             url=self.page.context.pages[-1].url,
-            title=title_text.strip(),
-            content=content,
+            title=sample.title_text,
+            content=sample.content,
         )
 
-    async def _scroll_page(self, revoke):
+    async def _scroll_page(self):
         t0 = time.perf_counter()
 
         pending_samples = await self._fil_depth_page()
@@ -195,7 +209,7 @@ class AgentV:
         samples = pending_samples[: self._into_depth_page_times]
 
         for sample in samples:
-            _, tag, _ = sample
+            tag = sample.tag
             while not await tag.is_visible():
                 await self.page.wait_for_timeout(random.choice([800, 1500]))
                 for _ in range(random.randint(3, 5)):
@@ -223,7 +237,7 @@ class AgentV:
     @logger.catch
     async def _action(self, kw: str, *, revoke: int = 3):
         """once trigger"""
-        await self._scroll_page(revoke)
+        await self._scroll_page()
 
         # Release cache
         if len(self.page.context.pages) > 1:
@@ -296,7 +310,7 @@ class AgentV:
                 logger.debug("Loop task", progress=f"[{i + 1}/{limit}]")
                 await self._recall_keyword(keyword)
                 await self._action(keyword, revoke=self._pages_per_keyword)
-                self._viewed_page_content = set()
+                self._viewed_page_binder = set()
             except Exception as err:
                 logger.error(err)
                 await self.page.wait_for_timeout(3000)
