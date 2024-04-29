@@ -4,6 +4,7 @@
 # GitHub     : https://github.com/QIN2DIM
 # Description:
 import json
+import os
 import random
 import time
 from asyncio import Queue
@@ -29,7 +30,7 @@ from muk.const import (
 def _fil_jquery(response_txt: str) -> dict:
     start_index = response_txt.index("{")
     end_index = response_txt.rindex("}")
-    json_string = response_txt[start_index : end_index + 1]
+    json_string = response_txt[start_index: end_index + 1]
     qr_data = json.loads(json_string)
     return qr_data
 
@@ -120,12 +121,13 @@ class AgentV:
             if i not in content:
                 return False
 
-    async def _recall_keyword(self, kw: str, *, tumble: bool = False):
+    async def _recall_keyword(self, kw: str):
         self._this_kw = kw
 
         await self.page.goto("https://www.baidu.com/")
 
         input_field = self.page.locator("//input")
+
         await input_field.first.type(kw, delay=50)
 
         # wait for video captrue
@@ -155,9 +157,9 @@ class AgentV:
             if self._tumble_kw in related_question:
                 tumble_id = i + 1
             if (
-                selection
-                and (selection in related_question)
-                and (self._tumble_kw not in related_question)
+                    selection
+                    and (selection in related_question)
+                    and (self._tumble_kw not in related_question)
             ):
                 await sug_item.click()
                 return
@@ -211,44 +213,43 @@ class AgentV:
         for i in range(count):
             tx = title_link.nth(i)
             if sample.title_text == await tx.text_content():
-                # await self.page.wait_for_timeout(random.randint(100, 300))
-                await title_link.nth(i).click()
+                await tx.scroll_into_view_if_needed()
+                await self.page.wait_for_timeout(random.randint(1000, 2000))
+                await title_link.nth(i).click(force=True)
+                await self.page.context.pages[-1].wait_for_load_state()
+                await self.page.wait_for_timeout(3000)
                 logger.success(
                     "Page jump",
-                    url=self.page.context.pages[-1].url,
                     title=sample.title_text,
                     content=sample.content,
+                    url=self.page.context.pages[-1].url,
                 )
-                await self.page.wait_for_timeout(random.randint(3000, 5000))
-                await self.page.pause()
                 return
 
     async def _scroll_page(self):
         t0 = time.perf_counter()
-
         pending_samples = await self._fil_depth_page()
         samples = pending_samples[: self._into_depth_page_times]
-        for sample in samples:
-            while not await self._is_select_title_visible(sample):
-                await self.page.wait_for_timeout(random.choice([100, 300]))
-                for _ in range(random.randint(1, 2)):
-                    await self.page.mouse.wheel(0, 20)
+
+        for i, sample in enumerate(samples):
+            await self.page.wait_for_timeout(random.choice([100, 300]))
+            # 向下滑
+            for _ in range(random.randint(6, 9)):
+                await self.page.mouse.wheel(0, 20)
+                await self.page.wait_for_timeout(50)
             await self._drop_depth_page(sample)
             await self.page.bring_to_front()
-            if len(samples) > 1:
-                await self.page.wait_for_timeout(300)
-                await self.page.keyboard.press("Home")
-            else:
-                for _ in range(3):
-                    for _ in range(random.randint(3, 5)):
-                        await self.page.mouse.wheel(0, 50)
-                        await self.page.wait_for_timeout(400)
-                    await self.page.wait_for_timeout(random.choice([500, 800]))
-                await self.page.wait_for_timeout(1000)
+            # 向下滑
+            for _ in range(3):
+                await self.page.wait_for_timeout(random.choice([300, 500]))
+                for _ in range(random.randint(3, 5)):
+                    await self.page.mouse.wheel(0, 20)
+                    await self.page.wait_for_timeout(50)
 
         # Make the next page button is_visible
         await self.page.bring_to_front()
         await self.page.keyboard.press("End")
+        await self.page.wait_for_timeout(1200)
         te = time.perf_counter()
         time_left = self._time_spent_on_each_page - ((te - t0) * 1000)
         if time_left > 0:
@@ -290,6 +291,9 @@ class AgentV:
         )
 
         for i, kw in enumerate(keywords):
+            if prefix_kw := os.getenv("PREFIX_KW"):
+                logger.debug("Alignment prelude", prefix_kw=prefix_kw)
+                await self._recall_keyword(prefix_kw)
             logger.debug("Invoke task", progress=f"[{i + 1}/{len(keywords)}]")
             await self._recall_keyword(kw)
             await self._action(kw, revoke=self._pages_per_keyword)

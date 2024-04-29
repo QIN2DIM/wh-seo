@@ -66,7 +66,7 @@ else:
 LOOP_LIMIT: int = _loop_limit
 
 # 每个页面至多点击几个词条（进入多少个深度页面）
-INTO_DEPTH_PAGE_TIMES: int = 1
+INTO_DEPTH_PAGE_TIMES: int = 2
 if (pt := os.getenv("INTO_DEPTH_PAGE_TIMES")) and pt.isdigit():
     INTO_DEPTH_PAGE_TIMES = int(pt)
 
