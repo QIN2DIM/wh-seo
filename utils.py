@@ -92,4 +92,3 @@ def load_keywords(fp: Path = Path("./keywords.txt")) -> Set[str] | None:
 if not (KEYWORDS := load_keywords()):
     logger.info("No keywords")
     sys.exit()
- 

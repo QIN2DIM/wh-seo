@@ -10,11 +10,11 @@ from asyncio import Queue
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Set, List, Dict, Tuple, Any
+from typing import Set, List, Dict
 from venv import logger
 
 from loguru import logger
-from playwright.async_api import Page, Response, Locator, expect
+from playwright.async_api import Page, Response, expect
 
 from muk.const import (
     INTO_DEPTH_PAGE_TIMES,
@@ -55,7 +55,6 @@ class Suggestion:
 @dataclass
 class Sample:
     nth: int
-    tag: Locator
     title_text: str
     content: str
 
@@ -84,6 +83,13 @@ class AgentV:
         self.whitelist_ful = {"进化论"}
 
         self.page.on("response", self.task_handler)
+
+        logger.debug(
+            "Load settings",
+            blacklist=self.blacklist_content,
+            whitelist=self.whitelist_content,
+            wh_ful=self.whitelist_ful,
+        )
 
     @logger.catch
     async def task_handler(self, response: Response):
@@ -120,7 +126,14 @@ class AgentV:
         await self.page.goto("https://www.baidu.com/")
 
         input_field = self.page.locator("//input")
-        await input_field.first.type(kw, delay=50)
+
+        ful_co = "进化论资产"
+        if not kw.startswith(ful_co):
+            await input_field.first.type(kw, delay=50)
+        else:
+            await input_field.first.type(ful_co, delay=50)
+            await self.page.wait_for_timeout(1000)
+            await input_field.first.type(kw.replace(ful_co, ""), delay=75)
 
         # wait for video captrue
         await self.page.wait_for_timeout(1000)
@@ -177,21 +190,36 @@ class AgentV:
             title = self.page.locator("//h3").nth(i)
             title_text = await title.text_content()
             binder = title_text + content
-            # 过滤已访问过的链接，过滤异常的追踪器
-            if binder in self._viewed_page_binder or self.is_irrelevant(binder):
+            # 过滤已访问过的链接
+            if binder in self._viewed_page_binder:
                 continue
-            # 过滤不在白名单内的索引
+            # [白名单规则优先]过滤不在白名单内的索引
             if self.is_highly_relevant(binder):
                 self._viewed_page_binder.add(binder)
-                sample = Sample(nth=i, tag=tag, title_text=title_text, content=content)
+                sample = Sample(nth=i, title_text=title_text, content=content)
                 pending_samples.append(sample)
+                print(f"add sample {title_text}")
+                continue
+            # [黑名单规则]过滤异常的追踪器
+            if self.is_irrelevant(binder):
+                continue
+            # [无害内容]
+            sample = Sample(nth=i, title_text=title_text, content=content)
+            pending_samples.append(sample)
+            print(f"add sample {title_text}")
 
         return pending_samples
+
+    async def _is_select_title_visible(self, sample: Sample):
+        title = self.page.locator("//h3").nth(sample.nth)
+        title_text = await title.text_content()
+        if title_text in sample.title_text:
+            return True
 
     async def _drop_depth_page(self, sample: Sample):
         await self.page.wait_for_timeout(random.randint(300, 1000))
         title = self.page.locator("//h3").nth(sample.nth)
-        await title.click(no_wait_after=True)
+        await title.click()
         await self.page.wait_for_timeout(random.randint(3000, 5000))
 
         logger.debug(
@@ -207,16 +235,17 @@ class AgentV:
         pending_samples = await self._fil_depth_page()
         random.shuffle(pending_samples)
         samples = pending_samples[: self._into_depth_page_times]
+        print(f"{len(samples)=}")
 
         for sample in samples:
-            tag = sample.tag
-            while not await tag.is_visible():
-                await self.page.wait_for_timeout(random.choice([800, 1500]))
-                for _ in range(random.randint(3, 5)):
+            while not await self._is_select_title_visible(sample):
+                await self.page.wait_for_timeout(random.choice([300, 400]))
+                for _ in range(random.randint(1, 2)):
                     await self.page.mouse.wheel(0, 20)
             await self._drop_depth_page(sample)
             await self.page.bring_to_front()
             if len(samples) > 1:
+                await self.page.wait_for_timeout(300)
                 await self.page.keyboard.press("Home")
             else:
                 for _ in range(3):
