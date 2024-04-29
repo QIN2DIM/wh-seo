@@ -126,14 +126,7 @@ class AgentV:
         await self.page.goto("https://www.baidu.com/")
 
         input_field = self.page.locator("//input")
-
-        ful_co = "进化论资产"
-        if not kw.startswith(ful_co):
-            await input_field.first.type(kw, delay=50)
-        else:
-            await input_field.first.type(ful_co, delay=50)
-            await self.page.wait_for_timeout(1000)
-            await input_field.first.type(kw.replace(ful_co, ""), delay=75)
+        await input_field.first.type(kw, delay=50)
 
         # wait for video captrue
         await self.page.wait_for_timeout(1000)
@@ -174,7 +167,7 @@ class AgentV:
         return pending_list
 
     async def _fil_depth_page(self) -> List[Sample]:
-        await self.page.wait_for_load_state(state="networkidle")
+        await self.page.wait_for_load_state()
         title_tags = self.page.locator(
             "//div[@id='content_left']//div[contains(@class, 'result ')]"
         )
@@ -193,12 +186,11 @@ class AgentV:
             # 过滤已访问过的链接
             if binder in self._viewed_page_binder:
                 continue
+            self._viewed_page_binder.add(binder)
             # [白名单规则优先]过滤不在白名单内的索引
             if self.is_highly_relevant(binder):
-                self._viewed_page_binder.add(binder)
                 sample = Sample(nth=i, title_text=title_text, content=content)
                 pending_samples.append(sample)
-                print(f"add sample {title_text}")
                 continue
             # [黑名单规则]过滤异常的追踪器
             if self.is_irrelevant(binder):
@@ -206,40 +198,39 @@ class AgentV:
             # [无害内容]
             sample = Sample(nth=i, title_text=title_text, content=content)
             pending_samples.append(sample)
-            print(f"add sample {title_text}")
 
         return pending_samples
 
     async def _is_select_title_visible(self, sample: Sample):
         title = self.page.locator("//h3").nth(sample.nth)
-        title_text = await title.text_content()
-        if title_text in sample.title_text:
-            return True
+        return await title.is_visible()
 
     async def _drop_depth_page(self, sample: Sample):
-        await self.page.wait_for_timeout(random.randint(300, 1000))
-        title = self.page.locator("//h3").nth(sample.nth)
-        await title.click()
-        await self.page.wait_for_timeout(random.randint(3000, 5000))
-
-        logger.debug(
-            "Page jump",
-            url=self.page.context.pages[-1].url,
-            title=sample.title_text,
-            content=sample.content,
-        )
+        title_link = self.page.locator("//h3//a")
+        count = await title_link.count()
+        for i in range(count):
+            tx = title_link.nth(i)
+            if sample.title_text == await tx.text_content():
+                # await self.page.wait_for_timeout(random.randint(100, 300))
+                await title_link.nth(i).click()
+                logger.success(
+                    "Page jump",
+                    url=self.page.context.pages[-1].url,
+                    title=sample.title_text,
+                    content=sample.content,
+                )
+                await self.page.wait_for_timeout(random.randint(3000, 5000))
+                await self.page.pause()
+                return
 
     async def _scroll_page(self):
         t0 = time.perf_counter()
 
         pending_samples = await self._fil_depth_page()
-        random.shuffle(pending_samples)
         samples = pending_samples[: self._into_depth_page_times]
-        print(f"{len(samples)=}")
-
         for sample in samples:
             while not await self._is_select_title_visible(sample):
-                await self.page.wait_for_timeout(random.choice([300, 400]))
+                await self.page.wait_for_timeout(random.choice([100, 300]))
                 for _ in range(random.randint(1, 2)):
                     await self.page.mouse.wheel(0, 20)
             await self._drop_depth_page(sample)
@@ -322,7 +313,7 @@ class AgentV:
             await self._action(related_question, revoke=self._pages_per_keyword)
         logger.success("Invoke down", trigger=self.__class__.__name__)
 
-    async def loop_one_search(self, keyword: str, limit: int = 100):
+    async def loop_one_search(self, keyword: str, limit: int = 10):
         self._keywords = {keyword} if isinstance(keyword, str) else keyword
         self._pages_per_keyword = 1
         self._into_depth_page_times = 1

@@ -54,6 +54,7 @@ ENABLE_RECORD_VIDEO = os.getenv("ENABLE_RECORD_VIDEO")
 # AgentV
 # ===================================================================
 # 单字循环任务
+LOOP_PREFIX_KEYWORD: str | None = os.getenv("LOOP_PREFIX_KEYWORD")
 LOOP_THE_KEYWORD: str | None = os.getenv("LOOP_THE_KEYWORD")
 
 # 单字循环轮次
@@ -86,7 +87,15 @@ if bc := os.getenv("BLACKLIST_CONTENT"):
     BLACKLIST_CONTENT.update(bc)
 
 # 拒绝点入body不含如下关键词的页面（单字匹配）
-WHITELIST_CONTENT: Set[str] = {"科学投资", "主动+量化", "数据+逻辑", "雪球", "私募排", "超额收益", "进化论资产"}
+WHITELIST_CONTENT: Set[str] = {
+    "科学投资",
+    "主动+量化",
+    "数据+逻辑",
+    "雪球",
+    "私募排",
+    "超额收益",
+    "进化论资产",
+}
 if trk := os.getenv("TUMBLE_RELATED_KEYWORD"):
     trk = set([i.strip() for i in trk.strip().split(",")])
     WHITELIST_CONTENT.update(trk)

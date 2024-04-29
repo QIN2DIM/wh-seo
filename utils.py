@@ -8,7 +8,7 @@ import random
 import sys
 from contextlib import suppress
 from pathlib import Path
-from typing import Set
+from typing import Set, List
 
 import dotenv
 from loguru import logger
@@ -63,7 +63,7 @@ def init_log(**sink_channel):
     return logger
 
 
-def load_keywords(fp: Path = Path("./keywords.txt")) -> Set[str] | None:
+def load_keywords(fp: Path = Path("./keywords.txt")) -> List[str] | None:
     if kws_env := os.getenv("SEARCH_KEYWORDS", ""):
         kws_list = kws_env.strip().split(",")
     elif fp.is_file():
@@ -74,7 +74,7 @@ def load_keywords(fp: Path = Path("./keywords.txt")) -> Set[str] | None:
         return
 
     kws_list = [i.strip() for i in kws_list]
-    random.shuffle(kws_list)
+    # random.shuffle(kws_list)
 
     qs_ = len(kws_list)
     with suppress(Exception):
@@ -83,8 +83,8 @@ def load_keywords(fp: Path = Path("./keywords.txt")) -> Set[str] | None:
                 if 0 < (qsize_int := int(qsize)) < len(kws_list) + 1:
                     qs_ = qsize_int
 
-    kws_list = kws_list[:qs_]
-    kws = set(kws_list)
+    kws = kws_list[:qs_]
+    # kws = set(kws_list)
 
     return kws
 
