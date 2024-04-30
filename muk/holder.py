@@ -235,7 +235,7 @@ class AgentV:
                 if len(self.page.context.pages) == 1:
                     href = await tx.get_attribute("href")
                     tmp_page = await self.page.context.new_page()
-                    await tmp_page.goto(href)
+                    await tmp_page.goto(href, wait_until="domcontentloaded")
                 await self.page.wait_for_timeout(3000)
                 logger.success(
                     "Page jump",
