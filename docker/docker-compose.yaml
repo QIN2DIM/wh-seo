@@ -11,3 +11,4 @@ services:
       # SEARCH_KEYWORDS: 进化论资产科学投资
       # 一共阅览多少个关键词，可选项 Literal["all", "0 < IsDigit < Max"]
       KEYWORD_LIMIT: all
+      LONG_TAIL_WORDS: 进化论资产
