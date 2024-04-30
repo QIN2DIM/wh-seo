@@ -14,7 +14,7 @@ jobs:
         instance: [ 1, 2, 3, 4, 5 ]
     env:
       LONG_TAIL_WORDS: 进化论资产
-      LOOP_THE_KEYWORD: 进化论资产科学投资
+      LOOP_THE_KEYWORD: 进化论资产超额收益
       LOOP_LIMIT: 10
       FAKE_HASH: "Automated deployment @ $(date '+%Y-%m-%d %H:%M:%S') Asia/Shanghai"
     runs-on: ubuntu-latest

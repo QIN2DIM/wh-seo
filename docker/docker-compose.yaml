@@ -8,7 +8,7 @@ services:
     command: ["python3", "timer.py"]
     environment:
       LONG_TAIL_WORDS: 进化论资产
-      LOOP_THE_KEYWORD: 进化论资产科学投资
+      LOOP_THE_KEYWORD: 进化论资产超额收益
       LOOP_LIMIT: 10
       END_DAYS: 7
       INTERVAL_SECONDS: 600
