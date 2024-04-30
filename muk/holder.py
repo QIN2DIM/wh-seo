@@ -30,7 +30,7 @@ from muk.const import (
 def _fil_jquery(response_txt: str) -> dict:
     start_index = response_txt.index("{")
     end_index = response_txt.rindex("}")
-    json_string = response_txt[start_index: end_index + 1]
+    json_string = response_txt[start_index : end_index + 1]
     qr_data = json.loads(json_string)
     return qr_data
 
@@ -100,7 +100,11 @@ class AgentV:
             response_text = await response.text()
             qr_data = _fil_jquery(response_text)
             if q := qr_data.get("q"):
-                if q in self._keywords or self._long_tail_words and q in self._long_tail_words:
+                if (
+                    q in self._keywords
+                    or isinstance(self._long_tail_words, str)
+                    and q == self._long_tail_words
+                ):
                     logger.info(f"query ->> {q}", suggestion=qr_data)
                     self.sug_queue.put_nowait(Suggestion(**qr_data))
 
@@ -169,9 +173,9 @@ class AgentV:
             if self._tumble_kw in related_question:
                 tumble_id = i + 1
             if (
-                    selection
-                    and (selection in related_question)
-                    and (self._tumble_kw not in related_question)
+                selection
+                and (selection in related_question)
+                and (self._tumble_kw not in related_question)
             ):
                 await sug_item.click()
                 return

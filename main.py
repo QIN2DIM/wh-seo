@@ -53,7 +53,9 @@ async def main(headless: bool = False):
     viewport = {"width": 1920, "height": 1080}
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=headless, proxy=PROXY)
-        context = await browser.new_context(locale="zh-CN", record_video_dir=record_video_dir, viewport=viewport)
+        context = await browser.new_context(
+            locale="zh-CN", record_video_dir=record_video_dir, viewport=viewport
+        )
         await Malenia.apply_stealth(context)
 
         page = await context.new_page()
