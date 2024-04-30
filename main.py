@@ -52,7 +52,7 @@ async def main(headless: bool = False):
         record_video_dir = Path(f"tmp_dir/record_videos/{now_}")
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=headless, proxy=PROXY)
+        browser = await p.firefox.launch(headless=headless, proxy=PROXY)
         context = await browser.new_context(locale="zh-CN", record_video_dir=record_video_dir)
         await Malenia.apply_stealth(context)
 

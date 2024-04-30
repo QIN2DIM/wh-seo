@@ -4,7 +4,6 @@
 # GitHub     : https://github.com/QIN2DIM
 # Description:
 import json
-import os
 import random
 import time
 from asyncio import Queue
@@ -124,16 +123,14 @@ class AgentV:
     async def _recall_keyword(self, kw: str):
         self._this_kw = kw
 
-        await self.page.goto("https://www.baidu.com/")
+        await self.page.goto("https://www.baidu.com/", wait_until="domcontentloaded")
 
         input_field = self.page.locator("//input")
-
+        await input_field.first.type("进化论资产", delay=50)
+        await self.page.keyboard.press("Enter")
+        await self.page.wait_for_timeout(500)
         await input_field.first.type(kw, delay=50)
-
-        # wait for video captrue
         await self.page.wait_for_timeout(1000)
-
-        # Click on related suggestion
         await self.page.keyboard.press("Enter")
 
     async def _tumble_related_questions(self, kw: str, *, selection: str = ""):
@@ -216,7 +213,16 @@ class AgentV:
                 await tx.scroll_into_view_if_needed()
                 await self.page.wait_for_timeout(random.randint(1000, 2000))
                 await title_link.nth(i).click(force=True)
-                await self.page.context.pages[-1].wait_for_load_state()
+                if len(self.page.context.pages) == 1:
+                    href = await tx.get_attribute("href")
+                    tmp_page = await self.page.context.new_page()
+                    await tmp_page.goto(href, wait_until="networkidle")
+                    logger.success(
+                        "Page retrace",
+                        title=sample.title_text,
+                        content=sample.content,
+                        url=self.page.context.pages[-1].url,
+                    )
                 await self.page.wait_for_timeout(3000)
                 logger.success(
                     "Page jump",
@@ -291,9 +297,6 @@ class AgentV:
         )
 
         for i, kw in enumerate(keywords):
-            if prefix_kw := os.getenv("PREFIX_KW"):
-                logger.debug("Alignment prelude", prefix_kw=prefix_kw)
-                await self._recall_keyword(prefix_kw)
             logger.debug("Invoke task", progress=f"[{i + 1}/{len(keywords)}]")
             await self._recall_keyword(kw)
             await self._action(kw, revoke=self._pages_per_keyword)
