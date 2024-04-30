@@ -99,9 +99,10 @@ class AgentV:
         if "www.baidu.com/sugrec" in response.url and response.request.method == "GET":
             response_text = await response.text()
             qr_data = _fil_jquery(response_text)
-            if (q := qr_data.get("q")) in self._keywords:
-                logger.info(f"query ->> {q}", suggestion=qr_data)
-                self.sug_queue.put_nowait(Suggestion(**qr_data))
+            if q := qr_data.get("q"):
+                if q in self._keywords or self._long_tail_words and q in self._long_tail_words:
+                    logger.info(f"query ->> {q}", suggestion=qr_data)
+                    self.sug_queue.put_nowait(Suggestion(**qr_data))
 
     @classmethod
     def into_solver(cls, page: Page, tmp_dir: Path = Path("tmp_dir")):
@@ -230,13 +231,7 @@ class AgentV:
                 if len(self.page.context.pages) == 1:
                     href = await tx.get_attribute("href")
                     tmp_page = await self.page.context.new_page()
-                    await tmp_page.goto(href, wait_until="networkidle")
-                    logger.success(
-                        "Page retrace",
-                        title=sample.title_text,
-                        content=sample.content,
-                        url=self.page.context.pages[-1].url,
-                    )
+                    await tmp_page.goto(href)
                 await self.page.wait_for_timeout(3000)
                 logger.success(
                     "Page jump",
@@ -249,22 +244,28 @@ class AgentV:
     async def _scroll_page(self):
         t0 = time.perf_counter()
         pending_samples = await self._fil_depth_page()
-        samples = pending_samples[: self._into_depth_times_per_page]
+        if not pending_samples:
+            return
+
+        # 获取当前页前N个结果，打乱
+        pending_samples = pending_samples[: min(4, len(pending_samples))]
+        random.shuffle(pending_samples)
+        samples = pending_samples[: max(self._into_depth_times_per_page, 1)]
 
         for i, sample in enumerate(samples):
             await self.page.wait_for_timeout(random.choice([100, 300]))
             # 向下滑
             for _ in range(random.randint(6, 9)):
                 await self.page.mouse.wheel(0, 20)
-                await self.page.wait_for_timeout(50)
+                await self.page.wait_for_timeout(10)
             await self._drop_depth_page(sample)
             await self.page.bring_to_front()
             # 向下滑
             for _ in range(3):
-                await self.page.wait_for_timeout(random.choice([300, 500]))
                 for _ in range(random.randint(3, 5)):
-                    await self.page.mouse.wheel(0, 20)
-                    await self.page.wait_for_timeout(50)
+                    await self.page.mouse.wheel(0, 50)
+                    await self.page.wait_for_timeout(30)
+            await self.page.wait_for_timeout(random.choice([300, 500]))
 
         # Make the next page button is_visible
         await self.page.bring_to_front()
