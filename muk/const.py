@@ -54,7 +54,6 @@ ENABLE_RECORD_VIDEO = os.getenv("ENABLE_RECORD_VIDEO")
 # AgentV
 # ===================================================================
 # 单字循环任务
-LOOP_PREFIX_KEYWORD: str | None = os.getenv("LOOP_PREFIX_KEYWORD")
 LOOP_THE_KEYWORD: str | None = os.getenv("LOOP_THE_KEYWORD")
 
 # 单字循环轮次

@@ -4,6 +4,7 @@
 # GitHub     : https://github.com/QIN2DIM
 # Description:
 import json
+import os
 import random
 import time
 from asyncio import Queue
@@ -71,7 +72,7 @@ class AgentV:
     sug_queue: Queue[Suggestion] = field(default_factory=Queue)
 
     _viewed_page_binder: Set[str] = field(default_factory=set)
-    _into_depth_page_times: int = INTO_DEPTH_PAGE_TIMES
+    _into_depth_times_per_page: int = INTO_DEPTH_PAGE_TIMES
     _pages_per_keyword: int = PAGES_PER_KEYWORD
     _time_spent_on_each_page: int = TIME_SPENT_ON_EACH_PAGE
     _tumble_kw: str = "暴跌"
@@ -81,6 +82,8 @@ class AgentV:
         self.whitelist_content = WHITELIST_CONTENT
 
         self.whitelist_ful = {"进化论"}
+
+        self._long_tail_words = os.getenv("LONG_TAIL_WORDS")
 
         self.page.on("response", self.task_handler)
 
@@ -125,16 +128,24 @@ class AgentV:
 
         await self.page.goto("https://www.baidu.com/", wait_until="domcontentloaded")
 
-        input_field = self.page.locator("//input")
-        await input_field.first.type("进化论资产", delay=50)
-        await self.page.keyboard.press("Enter")
-        await self.page.wait_for_timeout(500)
-
-        input_field = self.page.locator("//input[@id='kw']")
-        await input_field.first.clear()
-        await input_field.first.type(kw, delay=50)
-        await self.page.wait_for_timeout(1000)
-        await self.page.keyboard.press("Enter")
+        # 绑定先导长尾词
+        if self._long_tail_words:
+            logger.debug("Hooking long trail words", kw=self._long_tail_words)
+            input_field = self.page.locator("//input")
+            await input_field.first.type(self._long_tail_words, delay=50)
+            await self.page.keyboard.press("Enter")
+            await self.page.wait_for_timeout(2000)
+            input_field = self.page.locator("//input[@id='kw']")
+            await input_field.first.clear()
+            await input_field.first.type(kw, delay=50)
+            await self.page.wait_for_timeout(1000)
+            await self.page.keyboard.press("Enter")
+        # 直接输入关键词
+        else:
+            input_field = self.page.locator("//input")
+            await input_field.first.type(kw, delay=50)
+            await self.page.wait_for_timeout(1000)
+            await self.page.keyboard.press("Enter")
 
     async def _tumble_related_questions(self, kw: str, *, selection: str = ""):
         await self.page.goto("https://www.baidu.com/")
@@ -238,7 +249,7 @@ class AgentV:
     async def _scroll_page(self):
         t0 = time.perf_counter()
         pending_samples = await self._fil_depth_page()
-        samples = pending_samples[: self._into_depth_page_times]
+        samples = pending_samples[: self._into_depth_times_per_page]
 
         for i, sample in enumerate(samples):
             await self.page.wait_for_timeout(random.choice([100, 300]))
@@ -275,7 +286,7 @@ class AgentV:
                 await p.close()
 
         # Claim 3 pages
-        if not revoke:
+        if revoke == 1:
             return
 
         # Special keywords. The browser has reached the last page
@@ -325,13 +336,14 @@ class AgentV:
 
     async def loop_one_search(self, keyword: str, limit: int = 10):
         self._keywords = {keyword} if isinstance(keyword, str) else keyword
-        self._pages_per_keyword = 1
-        self._into_depth_page_times = 1
+        self._pages_per_keyword = 3
+        self._into_depth_times_per_page = 1
 
         logger.info("[LOOP] keywords", keywords=self._keywords)
         logger.debug(
-            "Apply configuration",
+            "Modify configuration",
             PAGES_PER_KEYWORD=self._pages_per_keyword,
+            INTO_DEPTH_PAGE_TIMES=self._into_depth_times_per_page,
             TIME_SPENT_ON_EACH_PAGE=f"{self._time_spent_on_each_page}ms",
         )
 
