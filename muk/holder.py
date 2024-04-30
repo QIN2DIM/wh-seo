@@ -129,6 +129,9 @@ class AgentV:
         await input_field.first.type("进化论资产", delay=50)
         await self.page.keyboard.press("Enter")
         await self.page.wait_for_timeout(500)
+
+        input_field = self.page.locator("//input[@id='kw']")
+        await input_field.first.clear()
         await input_field.first.type(kw, delay=50)
         await self.page.wait_for_timeout(1000)
         await self.page.keyboard.press("Enter")

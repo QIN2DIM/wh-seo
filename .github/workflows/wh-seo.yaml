@@ -26,7 +26,6 @@ jobs:
       # LOOP_THE_KEYWORD: 进化论资产科学投资
       # LOOP_LIMIT: 6
       # TUMBLE_RELATED_KEYWORD: 进化论一平
-      PREFIX_KW: 进化论资产
       FAKE_HASH: "Automated deployment @ $(date '+%Y-%m-%d %H:%M:%S') Asia/Shanghai"
     runs-on: ubuntu-latest
     steps:
